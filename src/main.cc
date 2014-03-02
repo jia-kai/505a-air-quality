@@ -1,6 +1,6 @@
 /*
  * $File: main.cc
- * $Date: Sun Mar 02 16:32:20 2014 +0800
+ * $Date: Sun Mar 02 20:20:01 2014 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
  */
 
@@ -13,6 +13,9 @@
 
 #include <unistd.h>
 #include <signal.h>
+#include <sched.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "gpio_lib.hh"
 
@@ -57,6 +60,7 @@ class PWMDecoder {
 
 static nsec_time_t start_time;
 static PWMDecoder pwm1, pwm25;
+static uint64_t total_nr_sample = 0;
 
 static void alarm_handler(int) {
 	pwm1.feed(1);
@@ -64,11 +68,16 @@ static void alarm_handler(int) {
 	auto tot_time = get_current_time() - start_time,
 		 pm1 = pwm1.get_tot_neg(),
 		 pm25 = pwm25.get_tot_neg();
-	printf("%.8f\n%.8f\n%.3lf %.3lf %.3lf\n%d %d\n",
+	printf("%.8f\n%.8f\n"
+			"measured time: %.3lf %.3lf %.3lf\n"
+			"nr_posedge: %d %d\n"
+			"avg sample time: %.2lfs/%llu = %.5lfms\n",
 			double(pm1) / tot_time,
 			double(pm25) / tot_time,
 			pm1 * 1e-9, pm25 * 1e-9, tot_time * 1e-9,
-			pwm1.get_nr_posedge(), pwm25.get_nr_posedge());
+			pwm1.get_nr_posedge(), pwm25.get_nr_posedge(),
+			tot_time * 1e-9, (unsigned long long)total_nr_sample,
+			tot_time / total_nr_sample * 1e-6);
 	sunxi_gpio_cleanup();
 	exit(0);
 }
@@ -79,6 +88,20 @@ static void setup_sighandler() {
 	sa.sa_handler = alarm_handler;
 	if (sigaction(SIGALRM,  &sa, nullptr)) {
 		fprintf(stderr, "failed to set handler: %m\n");
+		exit(-1);
+	}
+}
+
+static void setup_sched() {
+	struct sched_param param;
+	memset(&param, 0, sizeof(param));
+	param.sched_priority = 99;
+	if (sched_setscheduler(0, SCHED_FIFO, &param)) {
+		fprintf(stderr, "failed to set to SCHED_FIFO: %m\n");
+		exit(-1);
+	}
+	if (setpriority(PRIO_PROCESS, 0, -20)) {
+		fprintf(stderr, "failed to set to setpriority: %m\n");
 		exit(-1);
 	}
 }
@@ -100,11 +123,12 @@ int main() {
 	}
 
 	setup_sighandler();
-	alarm(60);
+	setup_sched();
+	alarm(30);
 
 	start_time = get_current_time();
 
-	for (; ; ) {
+	for (; ; total_nr_sample ++) {
 		pwm1.feed(sunxi_gpio_input(INPUT_PM1));
 		pwm25.feed(sunxi_gpio_input(INPUT_PM25));
 	}

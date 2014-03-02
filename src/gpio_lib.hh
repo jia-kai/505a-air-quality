@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdexcept>
+
 #define SW_PORTC_IO_BASE 0x01c20800
 
 
@@ -142,7 +144,6 @@ enum sunxi_gpio_number {
 #define SUNXI_GPF4_SDC0_D3	(2)
 #define SUNXI_GPF4_UART0_RX	(4)
 
-extern int sunxi_gpio_input(unsigned int pin);
 extern int sunxi_gpio_init(void);
 extern int sunxi_gpio_set_cfgpin(unsigned int pin, unsigned int val);
 extern int sunxi_gpio_get_cfgpin(unsigned int pin);
@@ -150,4 +151,22 @@ extern int sunxi_gpio_output(unsigned int pin, unsigned int val);
 extern void sunxi_gpio_cleanup(void);
 
 extern unsigned int SUNXI_PIO_BASE;
+
+static inline int sunxi_gpio_input(unsigned int pin) {
+
+    unsigned int dat;
+    unsigned int bank = GPIO_BANK(pin);
+    unsigned int num = GPIO_NUM(pin);
+
+    if(!SUNXI_PIO_BASE)
+		throw std::runtime_error("uninitialized");
+
+    struct sunxi_gpio *pio =
+		&((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];
+
+    dat = *(&pio->dat);
+    dat >>= num;
+
+    return (dat & 0x1);
+}
 

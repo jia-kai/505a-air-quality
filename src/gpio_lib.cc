@@ -110,6 +110,7 @@ int sunxi_gpio_get_cfgpin(unsigned int pin) {
     cfg >>= offset;
     return (cfg & 0xf);
 }
+
 int sunxi_gpio_output(unsigned int pin, unsigned int val) {
 
     unsigned int bank = GPIO_BANK(pin);
@@ -129,24 +130,6 @@ int sunxi_gpio_output(unsigned int pin, unsigned int val) {
     return 0;
 }
 
-int sunxi_gpio_input(unsigned int pin) {
-
-    unsigned int dat;
-    unsigned int bank = GPIO_BANK(pin);
-    unsigned int num = GPIO_NUM(pin);
-
-    if(SUNXI_PIO_BASE == 0)
-    {
-        return -1;
-    }
-
-    struct sunxi_gpio *pio =&((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];
-
-    dat = *(&pio->dat);
-    dat >>= num;
-
-    return (dat & 0x1);
-}
 void sunxi_gpio_cleanup(void)
 {
     unsigned int PageSize;
