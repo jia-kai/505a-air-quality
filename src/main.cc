@@ -1,7 +1,10 @@
 /*
  * $File: main.cc
- * $Date: Sun Mar 02 20:42:43 2014 +0800
+ * $Date: Sun Mar 02 21:05:07 2014 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
+ *
+ * note: better to sysctl -w kernel.sched_rt_runtime_us=-1
+ * see SCHED_FIFO and realtime throttling (https://lwn.net/Articles/296419/)
  */
 
 
