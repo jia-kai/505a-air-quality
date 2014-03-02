@@ -1,6 +1,6 @@
 /*
  * $File: main.cc
- * $Date: Sun Mar 02 13:08:49 2014 +0800
+ * $Date: Sun Mar 02 16:32:20 2014 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
  */
 
@@ -100,7 +100,7 @@ int main() {
 	}
 
 	setup_sighandler();
-	alarm(30);
+	alarm(60);
 
 	start_time = get_current_time();
 
