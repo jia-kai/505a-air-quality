@@ -1,12 +1,12 @@
 # $File: Makefile
-# $Date: Sat Mar 01 23:53:00 2014 +0800
+# $Date: Sun Mar 02 10:13:30 2014 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 BUILD_DIR = build
 TARGET = getsample
 ARGS = 
 
-CXX = g++
+CXX = g++ -std=c++11
 
 SRC_EXT = cc
 CPPFLAGS = -Isrc

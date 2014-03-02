@@ -2,3 +2,5 @@
 *.pyc
 *.swp
 build
+getsample
+data
