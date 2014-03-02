@@ -1,6 +1,6 @@
 /*
  * $File: main.cc
- * $Date: Sun Mar 02 20:20:01 2014 +0800
+ * $Date: Sun Mar 02 20:42:43 2014 +0800
  * $Author: jiakai <jia.kai66@gmail.com>
  */
 
@@ -102,6 +102,14 @@ static void setup_sched() {
 	}
 	if (setpriority(PRIO_PROCESS, 0, -20)) {
 		fprintf(stderr, "failed to set to setpriority: %m\n");
+		exit(-1);
+	}
+
+	cpu_set_t cpu;
+	CPU_ZERO(&cpu);
+	CPU_SET(1, &cpu);
+	if (sched_setaffinity(0, sizeof(cpu), &cpu)) {
+		fprintf(stderr, "failed to set to setaffinity: %m\n");
 		exit(-1);
 	}
 }
