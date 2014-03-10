@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: dataproc.py
-# $Date: Sun Mar 02 15:30:22 2014 +0800
+# $Date: Tue Mar 11 00:25:03 2014 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import math
@@ -40,13 +40,29 @@ def pcs2concentration(pcs):
 
 
 def concentration2aqi(con):
+    if con < 0:
+        return con
     iprev = [0, 0]
     for i in AQI_TABLE:
         if con < i[0]:
             return LinearFunction(iprev[0], iprev[1], i[0], i[1]).eval(con)
+        iprev = i
     return con
 
+def aqi2concentration(aqi):
+    if aqi < 0:
+        return aqi
+    iprev = [0, 0]
+    for i in AQI_TABLE:
+        if aqi < i[1]:
+            return LinearFunction(iprev[1], iprev[0], i[1], i[0]).eval(aqi)
+        iprev = i
+    return aqi
+
+def lowratio2concentration(lr):
+    return pcs2concentration(lowratio2pcs(lr))
+
 def lowratio2aqi(lr):
-    return concentration2aqi(pcs2concentration(lowratio2pcs(lr)))
+    return concentration2aqi(lowratio2concentration(lr))
 
 
