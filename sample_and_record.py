@@ -1,13 +1,14 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: sample_and_record.py
-# $Date: Sun Mar 02 15:52:01 2014 +0800
+# $Date: Tue Mar 11 00:25:24 2014 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from gevent import monkey
 monkey.patch_all()
 
 import gevent
+import re
 import json
 import urllib2
 import subprocess
@@ -15,16 +16,15 @@ import os
 import os.path
 import sqlite3
 import calendar
+import sys
 from datetime import datetime
 
-from dataproc import lowratio2aqi
+from dataproc import lowratio2concentration, aqi2concentration
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'history.db')
 LOCAL_SAMPLE_EXE = os.path.join(os.path.dirname(__file__), 'getsample')
 
-assert os.path.isfile(LOCAL_SAMPLE_EXE)
-
-def get_aqi():
+def get_conc_aqicn():
     """:return: tuple(<US data>, <Haidian data>)"""
     URL = 'http://aqicn.org/city/beijing'
 
@@ -46,27 +46,40 @@ def get_aqi():
         if 'Haidian Wanliu' in i['city']:
             assert rst[1] == -1
             rst[1] = int(i['aqi'])
-    return rst
+    return map(aqi2concentration, rst)
 
+
+def get_conc_bjair():
+    """:return: tuple(<US data>, <CN data>)"""
+    URL = 'http://www.beijing-air.com'
+    page = urllib2.urlopen(URL).read().decode('utf-8')
+    data = re.split( ur'PM2.5浓度:([0-9]*)', page, re.MULTILINE)
+    return map(int, [data[3], data[1]])
+
+get_conc = get_conc_aqicn
+
+
+def init_db(conn):
+    c = conn.cursor()
+    c.execute("""CREATE TABLE history
+              (time INTEGER PRIMARY KEY,
+              pm1_ratio REAL,
+              pm25_ratio REAL,
+              local_conc INTEGER,
+              us_conc INTEGER,
+              cn_conc INTEGER,
+              err_msg TEXT)""")
+    for col in 'local', 'us', 'cn':
+        c.execute("""CREATE INDEX idx_{0}_conc ON history ({0}_conc)""".format(
+            col))
+    conn.commit()
 
 def get_db_conn():
     if os.path.exists(DB_PATH):
         return sqlite3.connect(DB_PATH)
 
     conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute("""CREATE TABLE history
-              (time INTEGER PRIMARY KEY,
-              pm1_ratio REAL,
-              pm25_ratio REAL,
-              local_aqi INTEGER,
-              us_aqi INTEGER,
-              cn_aqi INTEGER,
-              err_msg TEXT)""")
-    for col in 'local', 'us', 'cn':
-        c.execute("""CREATE INDEX idx_{0}_aqi ON history ({0}_aqi)""".format(
-            col))
-
+    init_db(conn)
     return conn
 
 
@@ -86,19 +99,19 @@ def get_local_sample():
 
 def insert_db_entry():
     time = calendar.timegm(datetime.utcnow().timetuple())
-    pm1_ratio, pm25_ratio, local_aqi, us_aqi, cn_aqi = [-1] * 5
+    pm1_ratio, pm25_ratio, local_conc, us_conc, cn_conc = [-1] * 5
     err_msg = None
-    job = gevent.spawn(get_aqi)
+    job = gevent.spawn(get_conc)
     try:
         pm1_ratio, pm25_ratio = get_local_sample()
-        local_aqi = lowratio2aqi(pm1_ratio - pm25_ratio)
+        local_conc = lowratio2concentration(pm1_ratio - pm25_ratio)
     except Exception as exc:
         err_msg = 'failed to sample locally: {}'.format(exc)
 
     job.join()
     try:
         if job.successful():
-            us_aqi, cn_aqi = job.value
+            us_conc, cn_conc = job.value
         else:
             raise job.exception
     except Exception as exc:
@@ -110,10 +123,14 @@ def insert_db_entry():
     conn = get_db_conn()
     conn.cursor().execute(
         """INSERT INTO history VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (time, pm1_ratio, pm25_ratio, local_aqi, us_aqi, cn_aqi, err_msg))
+        (time, pm1_ratio, pm25_ratio, local_conc, us_conc, cn_conc, err_msg))
     conn.commit()
 
 
 if __name__ == '__main__':
-    insert_db_entry()
+    if sys.argv[1:] == ['test']:
+        print get_conc_aqicn()
+        print get_conc_bjair()
+    else:
+        insert_db_entry()
 
