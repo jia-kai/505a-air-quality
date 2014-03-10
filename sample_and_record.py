@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: sample_and_record.py
-# $Date: Tue Mar 11 00:25:24 2014 +0800
+# $Date: Tue Mar 11 00:35:03 2014 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from gevent import monkey
@@ -56,7 +56,7 @@ def get_conc_bjair():
     data = re.split( ur'PM2.5浓度:([0-9]*)', page, re.MULTILINE)
     return map(int, [data[3], data[1]])
 
-get_conc = get_conc_aqicn
+get_conc = get_conc_bjair
 
 
 def init_db(conn):
