@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: sample_and_record.py
-# $Date: Tue Mar 11 00:35:03 2014 +0800
+# $Date: Wed Mar 12 23:03:06 2014 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 from gevent import monkey
@@ -65,9 +65,9 @@ def init_db(conn):
               (time INTEGER PRIMARY KEY,
               pm1_ratio REAL,
               pm25_ratio REAL,
-              local_conc INTEGER,
-              us_conc INTEGER,
-              cn_conc INTEGER,
+              local_conc REAL,
+              us_conc REAL,
+              cn_conc REAL,
               err_msg TEXT)""")
     for col in 'local', 'us', 'cn':
         c.execute("""CREATE INDEX idx_{0}_conc ON history ({0}_conc)""".format(
@@ -75,11 +75,11 @@ def init_db(conn):
     conn.commit()
 
 def get_db_conn():
-    if os.path.exists(DB_PATH):
-        return sqlite3.connect(DB_PATH)
-
+    exist = os.path.exists(DB_PATH)
     conn = sqlite3.connect(DB_PATH)
-    init_db(conn)
+    if not exist:
+        init_db(conn)
+    conn.row_factory = sqlite3.Row
     return conn
 
 
