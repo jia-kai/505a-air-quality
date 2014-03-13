@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: plot.py
-# $Date: Thu Mar 13 19:14:33 2014 +0800
+# $Date: Thu Mar 13 20:23:07 2014 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 import pyximport
@@ -48,6 +48,7 @@ def get_time_plot(plot_ax):
     #ax.xaxis.set_major_locator(dates.HourLocator(interval=8))
     ax.xaxis.set_major_formatter(dates.DateFormatter('%m/%d %H:%M'))
     ax.set_ylim(bottom=0)
+    ax.set_ylabel(r'mass concentration/$\mu gm^{-3}$')
 
     plt.legend(loc='best')
     plt.xticks(rotation='vertical')
@@ -83,7 +84,9 @@ def main(output_dir):
     fig = plt.figure()
     ax = fig.add_subplot(111)
 
-    ax.plot([i.local for i in avg], [i.us for i in avg], '.')
+    ax.plot([i.local for i in avg[:-1]], [i.us for i in avg[1:]], '.')
+    ax.set_xlabel('local')
+    ax.set_ylabel(r'us/$\mu gm^{-3}$')
     plt.savefig(os.path.join(output_dir, 'scatter.png'))
 
     get_time_plot(plot_local)
