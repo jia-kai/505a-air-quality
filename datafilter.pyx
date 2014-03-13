@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 # $File: datafilter.pyx
-# $Date: Thu Mar 13 00:19:26 2014 +0800
+# $Date: Thu Mar 13 19:08:46 2014 +0800
 # $Author: jiakai <jia.kai66@gmail.com>
 
 cimport cython
@@ -21,7 +21,8 @@ cdef:
         int time
         double val
 
-def filter_samples(pysample):
+
+def smooth_gaussian(pysample):
     cdef:
         size_t current, t, nr_sample
         SamplePoint* sample
@@ -65,3 +66,57 @@ def filter_samples(pysample):
         current += 1
 
     free(sample)
+
+
+def smooth_average(pysample, length):
+    length /= 2
+    cdef:
+        size_t current, nr_sample, head, tail
+        SamplePoint* sample
+        double cur_val_sum
+        int cur_time, head_time, tail_time
+
+    sample = <SamplePoint*>malloc(len(pysample) * cython.sizeof(SamplePoint))
+
+    if sample is NULL:
+        raise MemoryError()
+
+    current = 0
+    for i in pysample:
+        sample[current].time = i.time
+        sample[current].val = i.local
+        current += 1
+
+    nr_sample = current
+    current = 0
+    head = 0
+    tail = 0
+    cur_val_sum = 0
+    for i in pysample:
+        cur_time = sample[current].time
+        head_time = cur_time - length
+        tail_time = cur_time + length
+
+        while sample[head].time < head_time:
+            cur_val_sum -= sample[head].val
+            head += 1
+
+        while tail < nr_sample and sample[tail].time < tail_time:
+            cur_val_sum += sample[tail].val
+            tail += 1
+
+        i.local = cur_val_sum / (tail - head)
+        current += 1
+
+    free(sample)
+
+def rescale(sample):
+    """min sum((i.local * x - i.us)^2)"""
+
+    sum_a = sum(i.local for i in sample)
+    sum_b = sum(i.us for i in sample)
+    x = sum_b / sum_a
+    print 'rescale:', x
+
+    for i in sample:
+        i.local *= x
